@@ -1,6 +1,8 @@
 package api
 
 import (
+	"errors"
+	"log"
 	"net/http"
 	"time"
 
@@ -10,14 +12,18 @@ import (
 func doneTaskHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		writeJson(w, map[string]string{"error": "method not allowed"})
+		if err := writeJson(w, map[string]string{"error": "method not allowed"}); err != nil {
+			log.Printf("writeJson error: %v", err)
+		}
 		return
 	}
 
 	id := r.URL.Query().Get("id")
 	if id == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		writeJson(w, map[string]string{"error": "id not defined"})
+		if err := writeJson(w, map[string]string{"error": "id not defined"}); err != nil {
+			log.Printf("writeJson error: %v", err)
+		}
 		return
 	}
 
@@ -30,38 +36,54 @@ func doneTaskHandler(w http.ResponseWriter, r *http.Request) {
 		now, err = time.Parse(dateFormat, nowStr)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			writeJson(w, map[string]string{"error": "invalid now format"})
+			if err := writeJson(w, map[string]string{"error": "invalid now format"}); err != nil {
+				log.Printf("writeJson error: %v", err)
+			}
 			return
 		}
 	}
 
 	task, err := db.GetTask(id)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		writeJson(w, map[string]string{"error": err.Error()})
+		if errors.Is(err, db.ErrTaskNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		if err := writeJson(w, map[string]string{"error": err.Error()}); err != nil {
+			log.Printf("writeJson error: %v", err)
+		}
 		return
 	}
 
 	if task.Repeat == "" {
 		if err := db.DeleteTask(id); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			writeJson(w, map[string]string{"error": err.Error()})
+			if err := writeJson(w, map[string]string{"error": err.Error()}); err != nil {
+				log.Printf("writeJson error: %v", err)
+			}
 			return
 		}
 	} else {
 		next, err := NextDate(now, task.Date, task.Repeat)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			writeJson(w, map[string]string{"error": err.Error()})
-			return
+			if err := writeJson(w, map[string]string{"error": err.Error()}); err != nil {
+				log.Printf("writeJson error: %v", err)
+
+				return
+			}
+			task.Date = next
+			if err := db.UpdateTask(task); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				if err := writeJson(w, map[string]string{"error": err.Error()}); err != nil {
+					log.Printf("writeJson error: %v", err)
+				}
+				return
+			}
 		}
-		task.Date = next
-		if err := db.UpdateTask(task); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			writeJson(w, map[string]string{"error": err.Error()})
-			return
+		if err := writeJson(w, map[string]string{}); err != nil {
+			log.Printf("writeJson error: %v", err)
 		}
 	}
-
-	writeJson(w, map[string]string{})
 }

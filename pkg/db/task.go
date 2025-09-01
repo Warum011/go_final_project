@@ -59,7 +59,7 @@ func GetTask(id string) (*Task, error) {
 		return nil, err
 	}
 
-	row := DB.QueryRow("SELECT id, date, title, comment, repeat FROM scheduler WHERE id = ? LIMIT 1",
+	row := DB.QueryRow("SELECT id, date, title, comment, repeat FROM scheduler WHERE id = ?",
 		idInt,
 	)
 
@@ -92,6 +92,20 @@ func UpdateTask(task *Task) error {
 }
 
 func DeleteTask(id string) error {
-	_, err := DB.Exec("DELETE FROM scheduler WHERE id = ?", id)
-	return err
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return err
+	}
+	res, err := DB.Exec("DELETE FROM scheduler WHERE id = ?", idInt)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrTaskNotFound
+	}
+	return nil
 }
