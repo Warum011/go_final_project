@@ -4,15 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/Warum011/go_final_project/pkg/db"
 )
 
-func writeJson(w http.ResponseWriter, v interface{}) error {
+func writeJson(w http.ResponseWriter, v interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	return json.NewEncoder(w).Encode(v)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("writeJson error: %v", err)
+	}
 }
 
 func readJson(body io.ReadCloser, v interface{}) error {

@@ -77,9 +77,7 @@ func NextDate(now time.Time, dstart string, repeat string) (string, error) {
 func nextDayHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		if err := writeJson(w, map[string]string{"error": "method not allowed"}); err != nil {
-			log.Printf("writeJson error: %v", err)
-		}
+		writeJson(w, map[string]string{"error": "method not allowed"})
 		return
 	}
 
@@ -87,19 +85,14 @@ func nextDayHandler(w http.ResponseWriter, r *http.Request) {
 	dateStr := r.FormValue("date")
 	if dateStr == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		if err := writeJson(w, map[string]string{"error": "date missing"}); err != nil {
-			log.Printf("writeJson error: %v", err)
-		}
+		writeJson(w, map[string]string{"error": "date missing"})
 		return
 	}
 
 	repeatStr := r.FormValue("repeat")
 	if repeatStr == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		if err := writeJson(w, map[string]string{"error": "repeat missing"}); err != nil {
-			log.Printf("writeJson error: %v", err)
-		}
-		return
+		writeJson(w, map[string]string{"error": "repeat missing"})
 	}
 
 	var now time.Time
@@ -110,9 +103,7 @@ func nextDayHandler(w http.ResponseWriter, r *http.Request) {
 		now, err = time.Parse(dateFormat, nowStr)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			if err := writeJson(w, map[string]string{"error": ErrInvalidDateFormat.Error()}); err != nil {
-				log.Printf("writeJson error: %v", err)
-			}
+			writeJson(w, map[string]string{"error": ErrInvalidDateFormat.Error()})
 			return
 		}
 	}
@@ -120,9 +111,7 @@ func nextDayHandler(w http.ResponseWriter, r *http.Request) {
 	next, err := NextDate(now, dateStr, repeatStr)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		if err := writeJson(w, map[string]string{"error": err.Error()}); err != nil {
-			log.Printf("writeJson error: %v", err)
-		}
+		writeJson(w, map[string]string{"error": err.Error()})
 		return
 	}
 
